@@ -1,0 +1,51 @@
+run_name: "2024_11_11_test"
+
+continue_run: False
+
+binding_states: ['L1_','L11','T1_','T1_L1_','T1_L11','T11','T11L1_','T11L11']
+names_components: ['LC8','TcTex','IC3']
+degeneracy_micro_macro: [2,1,2,4,4,1,4,2]
+components_binding_states: [[1,0,1],[1,0,2],[0,1,1],[1,1,1],[1,1,2],[0,1,2],[1,1,2],[1,1,2]]
+bounds: [[-15.0, 0.0],#gL1_
+       [-40.0, 10.0],#gL11
+       [-15.0, 0.0],#gT1_
+       [-40.0, 10.0],#gT1_L1_
+       [-65.0, 20.0],#gT1_L11
+       [-40.0, 10.0],#gT11
+       [-65.0, 20.0],#gT11L1_
+       [-90.0, 30.0],#gT11L11
+       [-20.0, 0.0],#hL1_
+       [-50.0, 10.0],#hL11 
+       [-20.0, 0.0],#hT1_
+       [-50.0, 10.0],#hT1_L1
+       [-80.0, 20.0],#hT1_L11
+       [-50.0, 10.0],#hT11
+       [-80.0, 20.0],#hT11L1_
+       [-110.0, 30]]#hT11L11
+dd_combinations: [[-2,1,0,0,0,0,0,0],
+                 [-1,0,-1,1,0,0,0,0],
+                 [0,0,-2,0,0,1,0,0],
+                 [0,-1,-1,0,1,0,0,0],
+                 [-1,0,0,-1,1,0,0,0],
+                 [-1,0,0,0,0,0,-1,1],
+                 [0,0,-1,0,-1,0,0,1],
+                 [0,0,-1,-1,0,0,1,0],
+                 [1,0,0,0,0,1,-1,0]]
+ddg_bounds: [[-10,10]]
+ddh_bounds: [[-15,15]]      
+       
+n_effective: 8192
+n_total: 65536
+
+filtering: True
+prior_shape: 'lognormal'     # 'uniform', 'gaussian', or 'lognormal'
+jeffreys_sigma: False
+h0_auto: True
+prior_width_bounds: [[0,2],[0,2],[0,2]]
+width: 0.4
+
+isotherms: [#'data_original_conc/IvL25c100707.csv',
+            #'data_original_conc/ITvL25c111607.csv',
+            ]
+
+kernels: 4
