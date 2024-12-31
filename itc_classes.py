@@ -229,7 +229,7 @@ class prior_isotherm:
     def rvs(self, size=1, prior_width=None):
         
         if prior_width is None:
-            prior_width = np.array([self.prior_width]*size)    
+            prior_width = np.array([self.prior_width]*size).T    
 
         prior_list=np.array(self.return_simple_priors(prior_width))
 
@@ -519,23 +519,29 @@ class bayesian_run:
                                 )
             
         if continue_run:
-            
-            pmc_files = []
-            
-            # Iterate through files in the folder
-            for file in os.listdir(self.path):
-                match = re.match(r"pmc_(\d+)\.state$", file)
-                if match:
-                    pmc_files.append((int(match.group(1)), file))
         
-            # Find the file with the highest number
-            path_continue=max(pmc_files, key=lambda x: x[0])[1]
-
-            # Check if the final file exists
             if os.path.exists(os.path.join(self.path, "pmc_final.state")):
-                path_continue="pmc_final.state"
+
+                print('Run already complete')
+                sampler.run(n_total=n_total,n_evidence=n_total,save_every=10, resume_state_path = os.path.join(self.path, "pmc_final.state"))
                 
-            sampler.run(n_total=n_total,n_evidence=n_total,save_every=10, resume_state_path = os.path.join(self.path, path_continue))
+            else:
+                pmc_files = []
+                
+                # Iterate through files in the folder
+                for file in os.listdir(self.path):
+                    match = re.match(r"pmc_(\d+)\.state$", file)
+                    if match:
+                        pmc_files.append((int(match.group(1)), file))
+                        
+                if not pmc_files:
+                    sampler.run(n_total=n_total,n_evidence=n_total,save_every=10)
+                    
+                else:
+                    # Find the file with the highest number
+                    path_continue=max(pmc_files, key=lambda x: x[0])[1]
+ 
+                    sampler.run(n_total=n_total,n_evidence=n_total,save_every=10, resume_state_path = os.path.join(self.path, path_continue))
             
         else:
             sampler.run(n_total=n_total,n_evidence=n_total,save_every=10)
@@ -799,7 +805,13 @@ class binding_structure:
 
         return binding_structure(self.components[filter][:,iso_indexes_for_filter], names_components, self.degeneracy[filter], binding_states=self.binding_states[filter]), filter
 
-    def synthetic_isotherm(self, dg, dh, total_concentrations, dh_0, sigma, names_components_syn, concentration_estimate_syn, in_syringe_syn, filter_prior_syn=None, first_inj_vol= 2, inj_vol = 10, inj_count = 35, Temp=298.15 , V0 = 1.42e-3):
+    def synthetic_isotherm(self, dg, dh, total_concentrations, dh_0, sigma, names_components_syn, concentration_estimate_syn, in_syringe_syn, filter_prior_syn=None, first_inj_vol= 2, inj_vol = 10, inj_count = 35, Temp=298.15 , V0 = 1.42e-3, show_concs=False, colors= [
+                                                                                                                                                                                                                                                                    'tab:blue', 'tab:orange', 'tab:green', 'tab:red', 'tab:purple', 
+                                                                                                                                                                                                                                                                    'tab:brown', 'tab:pink', 'tab:grey', 'tab:olive', 'tab:cyan', 
+                                                                                                                                                                                                                                                                    'darkblue', 'gold', 'lime', 'crimson', 'indigo', 
+                                                                                                                                                                                                                                                                    'maroon', 'teal', 'turquoise', 'lightgreen', 'darkorange', 
+                                                                                                                                                                                                                                                                    'navy', 'magenta', 'salmon', 'orchid', 'darkgrey'
+                                                                                                                                                                                                                                                                    ]):
 
         inj_list_syn = [first_inj_vol*1e-6] + [inj_vol*1e-6]*inj_count
         
@@ -818,6 +830,35 @@ class binding_structure:
         fig=isotherm_syn.plot(dg, dh, total_concentrations[iso_indexes], dh_0)
         fig.show()
         
+        if show_concs:
+            concs = isotherm_syn.get_conc(dg, dh, total_concentrations[iso_indexes], dh_0)
+            labels = np.concatenate((isotherm_syn.binding.names_components, isotherm_syn.binding.binding_states))
+            
+            # Create a single figure with two subplots
+            fig, axes = plt.subplots(1, 2, figsize=(14, 6))
+            
+            # Left plot: Linear scale
+            for i in range(len(concs.T)):
+                axes[0].plot(concs.T[i], label=labels[i], color=colors[i])
+            axes[0].set_title('Linear Scale', fontsize=14)
+            axes[0].set_ylabel('Concentration', fontsize=12)
+            
+            # Right plot: Log scale
+            for i in range(len(concs.T)):
+                axes[1].plot(concs.T[i], label=labels[i], color=colors[i])
+            axes[1].set_title('Log Scale', fontsize=14)
+            axes[1].set_yscale('log')
+            
+            # Combine legends and adjust placement
+            handles, labels = axes[0].get_legend_handles_labels()
+            fig.legend(
+                handles, labels, loc='lower center', ncol=12, fontsize=10, frameon=False, bbox_to_anchor=(0.5, -0.05)
+            )
+            
+            # Adjust layout
+            fig.tight_layout(rect=[0, 0, 1, 0.95])  # Leave space at the bottom for the legend      
+            plt.show()
+       
         return isotherm_syn
 
 class isotherm:
@@ -976,8 +1017,8 @@ class isotherm:
                 else:
                     sol = root(self.binding.solve_for_free_concentrations,x0=np.abs(sol.x),args=(concentrations_for_solver[i],k),method='hybr',options={'xtol':1e-4})
                 
+                # check for convergence
                 if np.sum(np.abs(self.binding.solve_for_free_concentrations(np.abs(sol.x),concentrations_for_solver[i],k)))/np.sum(np.abs(sol.x))>1e-3:
-                    #print('Failed to converge at step',i)
                     sol = root(self.binding.solve_for_free_concentrations,x0=concentrations_for_solver[i],args=(concentrations_for_solver[i],k),jac=self.binding.jacobian_solve_for_free_concentrations,method='hybr',options={'xtol':1e-10})
                     if np.sum(np.abs(self.binding.solve_for_free_concentrations(np.abs(sol.x),concentrations_for_solver[i],k)))/np.sum(np.abs(sol.x))>1e-3:
                         sol = root(self.binding.solve_for_free_concentrations,x0=concentrations_for_solver[i],args=(concentrations_for_solver[i],k),method='lm',options={'xtol':1e-10})
@@ -993,8 +1034,41 @@ class isotherm:
         avg_q = (q_list[1:] + q_list[:-1]) / 2  # (q_list[i+1] + q_list[i]) / 2
         dq_list = (delta_q + self.inj_list / self.V0 * avg_q) * 1e9 + dh_0 ##unit conversion from kcal to ucal (dh_0 in ucal already)
    
-        return dq_list         
+        return dq_list  
+        
+    def get_conc(self, dg, dh, total_concentrations, dh_0):
+
+        k = np.exp(dg/(R*self.Temp))[self.filter]
     
+        concentrations_for_solver = total_concentrations*self.conc_scaling.T
+        fc_list = np.empty(shape=concentrations_for_solver.shape)
+         
+        for i in range(len(fc_list)):
+                    
+            if i==0:
+                sol = root(self.binding.solve_for_free_concentrations,x0=concentrations_for_solver[i],args=(concentrations_for_solver[i],k),method='hybr',options={'xtol':1e-4})
+            
+            else:
+                sol = root(self.binding.solve_for_free_concentrations,x0=np.abs(sol.x),args=(concentrations_for_solver[i],k),method='hybr',options={'xtol':1e-4})
+            
+            # check for convergence
+            if np.sum(np.abs(self.binding.solve_for_free_concentrations(np.abs(sol.x),concentrations_for_solver[i],k)))/np.sum(np.abs(sol.x))>1e-3:
+                
+                sol = root(self.binding.solve_for_free_concentrations,x0=concentrations_for_solver[i],args=(concentrations_for_solver[i],k),jac=self.binding.jacobian_solve_for_free_concentrations,method='hybr',options={'xtol':1e-10})
+                if np.sum(np.abs(self.binding.solve_for_free_concentrations(np.abs(sol.x),concentrations_for_solver[i],k)))/np.sum(np.abs(sol.x))>1e-3:
+                    sol = root(self.binding.solve_for_free_concentrations,x0=concentrations_for_solver[i],args=(concentrations_for_solver[i],k),method='lm',options={'xtol':1e-10})
+                    if np.sum(np.abs(self.binding.solve_for_free_concentrations(np.abs(sol.x),concentrations_for_solver[i],k)))/np.sum(np.abs(sol.x))>1e-3:
+                        sol = root(self.binding.solve_for_free_concentrations,x0=concentrations_for_solver[i],args=(concentrations_for_solver[i],k),jac=self.binding.jacobian_solve_for_free_concentrations,method='lm',options={'xtol':1e-10})
+                        if np.sum(np.abs(self.binding.solve_for_free_concentrations(np.abs(sol.x),concentrations_for_solver[i],k)))/np.sum(np.abs(sol.x))>1e-3:
+                            sol = root(self.binding.solve_for_free_concentrations,x0=concentrations_for_solver[i],args=(concentrations_for_solver[i],k),method='df-sane',options={'ftol':1e-15})
+                            
+                            
+            fc_list[i]=np.abs(sol.x)
+        
+        conc_binding = np.prod(fc_list[:, None, :] ** self.binding.components[None, :, :],axis=2)*self.binding.degeneracy/k
+        
+        return np.concatenate((fc_list,conc_binding),axis=1) 
+        
     def get_prior(self, prior_shape, filtering,  prior_width=1, nuisance_bounds = np.array([[-50.0, 50.0],[0.001, 10.0]]), jeffreys_sigma=False, h0_auto=True):
         if (self.filter_prior is not None) and filtering:
             return prior_isotherm(iso=self, prior_shape=prior_shape, filtering=filtering, prior_width=prior_width, nuisance_bounds=nuisance_bounds, jeffreys_sigma=jeffreys_sigma, h0_auto=h0_auto)
