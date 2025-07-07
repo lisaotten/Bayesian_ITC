@@ -1,0 +1,79 @@
+# Configuration file for Bayesian inference run
+
+# Define the name for this specific run. This will be used for creating output directories.
+run_name: "xxxx_xx_xx_one_to_one_binding"
+
+# If set to True, the script will attempt to continue a previous run with the same run_name.
+# In this case, other input parameters will be loaded from the config file saved in the run_name folder.
+continue_run: False
+
+# Define the names of the binding states (e.g., different complexes formed).
+binding_states: ['bound']
+# Define the names of the components involved in the binding.
+names_components: ['monomer1','monomer2']
+# Define the degeneracy of each binding stage. This accounts for micro/macro degeneracy due to multiple equivalent binding sites.
+degeneracy_micro_macro: [1]
+# Define the stoichiometry of each component in each binding stage.
+# Each inner list represents a binding stage, and the values correspond to the components in names_components.
+components_binding_states: [[1,1]]
+# Define the bounds for the free energy (g) and enthalpy (h) parameters for each binding state.
+# The first half of the bounds are for free energy, and the second half are for enthalpy,
+# in the order defined by binding_states.
+bounds: [[-20.0, 0.0],#g
+        [-20.0, 0.0],#h
+        ]
+
+# Define combinations of binding states for calculating differential free energy and enthalpy.
+# These combinations are used to enforce constraints or define priors on differences between binding stages.
+dd_combinations: []
+# Define names for the differential combinations.
+dd_names: []
+# Define the bounds for the differential free energy values.
+# If a single bound is provided, it is applied to all differential combinations.
+ddg_bounds: []
+# Define the bounds for the differential enthalpy values.
+# If a single bound is provided, it is applied to all differential combinations.
+ddh_bounds: []
+
+# Define the effective number of samples for the Bayesian inference sampler (Pocomc).
+n_effective: 1024
+# Define the total number of steps for the Bayesian inference run.
+n_total: 4096
+
+# If True, use a posterior distribution from a previous run as a prior.
+posterior: False
+# Path to the data directory of the previous run if posterior is True.
+posterior_path: 'data_posterior/'
+# Indices of parameters in the posterior data to be used if posterior is True.
+posterior_indices: []
+
+# If True, apply filtering based on concentration ratio during prior sampling for isotherms.
+filtering: False
+# Define the shape of the prior distribution for isotherm parameters ('uniform', 'gaussian', or 'lognormal').
+prior_shape: 'lognormal'
+# If True, use a Jeffreys prior for the sigma parameter of the isotherms.
+jeffreys_sigma: False
+# If True, automatically determine the bound for the h0 parameter based on isotherm data.
+h0_auto: True
+
+# Define the prior width for the concentration parameters of the isotherms. 1=100%
+# Values only important for initial plotting, but structure should fit prior_width_bounds
+# Can be a single value applied to all components/isotherms or a list of values or a list of lists of values and values
+width: [1,1]  # more complicated example: width: [[0.3,1],0.3] has two different priors for the first component, which is used when is specified in order_isotherms
+
+# Define the bounds for the prior width parameter(s). Can be a simple [[0,2]] if using the same hyperparameter to model all concentration errors with a range of 0 to 200% or [[0,2],[0,2]] if one prior per component for a two component system
+prior_width_bounds: [[0,2],[0,2]] # more complicated example: prior_width_bounds: [[[0,2],[0,2]],[0,2]] has two different priors for the first component, which is used when is specified in order_isotherms
+
+# Define the prior width bounds used for the components of each isotherms. If width is a simple list of values and there is no specification necessary, leave empty []
+# This is a list of lists, where each inner list corresponds to a component and contains the indices
+# of the respective prior_width_bounds entry used as a prior range for that specific isotherm
+order_isotherms: [] # more complicated example: order_isotherms: [[0,1,1],[0,0,0]]
+
+# List of file paths to the isotherm data files.
+isotherms: ['isotherms/syn_4_2.csv',
+            'isotherms/syn_4_4.csv',
+            'isotherms/syn_4_6.csv',
+            ]
+
+# Number of CPU cores to use for parallel processing in Pocomc.
+kernels: 1
